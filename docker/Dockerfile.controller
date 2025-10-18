@@ -1,0 +1,5 @@
+FROM python:3.11-slim
+RUN pip install kopf kubernetes boto3 pyyaml
+COPY config/controller.py /app/controller.py
+COPY config/cloudfront-template.yaml /app/cloudfront-template.yaml
+CMD ["kopf", "run", "/app/controller.py", "--standalone"]

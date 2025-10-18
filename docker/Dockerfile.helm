@@ -1,0 +1,15 @@
+
+FROM alpine:3.18
+LABEL maintainer="cloudfront-eks@example.com"
+
+# Install Helm and Git
+RUN apk add --no-cache git helm
+
+# Set the working directory
+WORKDIR /chart
+
+# Copy the Helm chart into the image
+COPY cloudfront-helm-chart /chart/cloudfront-helm-chart
+
+# Default command: generate manifests with Helm
+CMD ["helm", "template", "cloudfront-helm-chart"]

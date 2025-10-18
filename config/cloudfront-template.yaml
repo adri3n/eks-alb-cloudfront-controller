@@ -1,0 +1,42 @@
+apiVersion: cloudfront.services.k8s.aws/v1alpha1
+kind: Distribution
+metadata:
+  name: ingress-cloudfront
+spec:
+  distributionConfig:
+    enabled: true
+    comment:  "CloudFront Distribution Template"
+    defaultRootObject: index.html
+    origins:
+      - id: ingress-cloudfront
+        domainName: k8s-ingress
+        customOriginConfig:
+          originProtocolPolicy: match-viewer
+          httpPort: 80
+          httpsPort: 443
+          originSslProtocols:
+            - TLSv1.2
+        originReadTimeout: 30
+        originKeepaliveTimeout: 5
+    defaultCacheBehavior:
+      targetOriginId: ingress-cloudfront
+      viewerProtocolPolicy: allow-all
+      allowedMethods:
+        items:
+          - GET
+          - HEAD
+          - OPTIONS
+          - PUT
+          - POST
+          - PATCH
+          - DELETE
+        cachedMethods:
+          - OPTIONS
+      cachePolicyId: 413fd7bd-6c3e-4f6f-8f07-6f6f6f6f6f6f # Managed-CachingDisabled
+      originRequestPolicyId: 216adef6-5c7f-47e4-b989-5492eafa07d3 # Managed-AllViewer
+      responseHeadersPolicyId: 5cc3b908-e619-4b99-88e5-2cf7f45965bd # Managed-CORS-With-Preflight
+#      functionAssociations:
+#        - eventType: origin-request
+#          functionARN: arn:aws:cloudfront::ACCOUNT_ID:function/FUNCTION_NAME
+    viewerCertificate:
+      cloudFrontDefaultCertificate: true

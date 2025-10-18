@@ -1,0 +1,5 @@
+controller:
+  image: adri3n/
+  replicaCount: 1
+  namespace: cloudfront-controller
+
