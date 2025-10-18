@@ -1,0 +1,35 @@
+name: Helm Chart Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release-helm-chart:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: latest
+
+      - name: Package Helm chart
+        run: |
+          mkdir -p helm-release
+          helm package charts/cloudfront-helm-chart --destination helm-release
+
+      - name: Generate Helm index.yaml
+        run: |
+          helm repo index helm-release --url https://github.com/${{ github.repository_owner }}/${{ github.event.repository.name }}/releases/download/${{ github.ref_name }}
+
+      - name: Upload Helm chart to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            helm-release/*.tgz
+            helm-release/index.yaml
