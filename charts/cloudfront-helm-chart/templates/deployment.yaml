@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alb-cloudfront-controller
+  namespace: {{ .Values.controller.namespace }}
+spec:
+  replicas: {{ .Values.controller.replicaCount }}
+  selector:
+    matchLabels:
+      app: alb-cloudfront-controller
+  template:
+    metadata:
+      labels:
+        app: alb-cloudfront-controller
+    spec:
+      serviceAccountName: alb-cloudfront-controller
+      containers:
+        - name: controller
+          image: {{ .Values.controller.image }}
+          env:
+            - name: AWS_REGION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['eks.amazonaws.com/region']
