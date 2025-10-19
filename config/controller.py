@@ -5,10 +5,6 @@ import os
 import yaml
 import time
 
-# AWS clients
-region = os.getenv("AWS_REGION", "us-east-1")
-elb_client = boto3.client("elbv2", region_name=region)
-
 # Kubernetes clients
 kubernetes.config.load_incluster_config()
 api = kubernetes.client.CustomObjectsApi()
@@ -17,10 +13,6 @@ networking_api = kubernetes.client.NetworkingV1Api()
 # CRD info
 CLOUD_FRONT_CRD_GROUP = "cloudfront.services.k8s.aws"
 CLOUD_FRONT_CRD_VERSION = "v1alpha1"
-
-# ALB config via env
-ALB_SUBNETS = os.getenv("ALB_SUBNETS", "subnet-xxxx,subnet-yyyy").split(",")
-ALB_SGS = os.getenv("ALB_SGS", "sg-xxxx").split(",")
 
 # Mapping kind -> plural
 PLURAL_MAP = {
