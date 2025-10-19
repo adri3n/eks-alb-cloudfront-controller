@@ -147,11 +147,11 @@ def reconcile_ingress(spec, status, meta, namespace, name, logger, **kwargs):
 
             # Charger et patcher le template CloudFront
             docs = load_and_patch_template(namespace, name, alb_dns)
-            for doc in docs:
-                create_or_update_crd(doc, logger)
+            #for doc in docs:
+            #    create_or_update_crd(doc, logger)
             
             # Patcher l'Ingress avec le domaine CloudFront
-            patch_ingress(namespace, name, alb_dns, logger)
+            #patch_ingress(namespace, name, alb_dns, logger)
         except Exception as e:
             logger.error(f"Failed to retrieve LoadBalancer hostname for Ingress {name}: {e}")
     else:
