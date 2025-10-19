@@ -154,5 +154,4 @@ def reconcile_ingress(spec, status, meta, namespace, name, logger, **kwargs):
             #patch_ingress(namespace, name, alb_dns, logger)
         except Exception as e:
             logger.error(f"Failed to retrieve LoadBalancer hostname for Ingress {name}: {e}")
-    else:
-        remove_crds_and_patch(namespace, name, logger)
+

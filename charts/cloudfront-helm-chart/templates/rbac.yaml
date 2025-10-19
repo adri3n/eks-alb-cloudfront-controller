@@ -6,7 +6,7 @@ metadata:
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
   name: alb-cloudfront-controller-role
   namespace: {{ .Values.controller.namespace }}
@@ -20,14 +20,15 @@ rules:
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
   name: alb-cloudfront-controller-binding
   namespace: {{ .Values.controller.namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: Role
+  kind: ClusterRole
   name: alb-cloudfront-controller-role
 subjects:
   - kind: ServiceAccount
     name: alb-cloudfront-controller
+    namespace: {{ .Values.controller.namespace }}
