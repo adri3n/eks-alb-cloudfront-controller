@@ -34,3 +34,12 @@ jobs:
       - name: Push Docker image
         run: |
           docker push ghcr.io/${{ github.repository_owner }}/ack-cloudfront-controller:${TAG}
+
+      - name: Tag image as latest
+        run: |
+          docker tag ghcr.io/${{ github.repository_owner }}/ack-cloudfront-controller:${TAG} \
+                     ghcr.io/${{ github.repository_owner }}/ack-cloudfront-controller:latest
+
+      - name: Push latest tag
+        run: |
+          docker push ghcr.io/${{ github.repository_owner }}/ack-cloudfront-controller:latest
