@@ -33,23 +33,6 @@ PLURAL_MAP = {
 
 TEMPLATE_PATH = "/app/cloudfront-template.yaml"
 
-def create_alb(namespace, ingress_name, logger):
-    alb_name = f"{namespace}-{ingress_name}"
-    existing = elb_client.describe_load_balancers()['LoadBalancers']
-    alb = next((a for a in existing if a['LoadBalancerName']==alb_name), None)
-    if alb:
-        return alb['DNSName']
-    logger.info(f"Creating ALB {alb_name}")
-    resp = elb_client.create_load_balancer(
-        Name=alb_name,
-        Subnets=ALB_SUBNETS,
-        SecurityGroups=ALB_SGS,
-        Scheme='internet-facing',
-        Type='application',
-        IpAddressType='ipv4'
-    )
-    return resp['LoadBalancers'][0]['DNSName']
-
 def load_and_patch_template(namespace, ingress_name, alb_dns):
     with open(TEMPLATE_PATH) as f:
         docs = list(yaml.safe_load_all(f))
@@ -155,13 +138,29 @@ def remove_crds_and_patch(namespace, ingress_name, logger):
 @kopf.timer('networking.k8s.io', 'v1', 'ingresses', interval=60)
 def reconcile_ingress(spec, status, meta, namespace, name, logger, **kwargs):
     annotations = meta.get("annotations", {})
+    
+    # Log pour indiquer l'Ingress et ses annotations
+    logger.info(f"Processing Ingress: {name} in namespace: {namespace}")
+    logger.info(f"Annotations: cloudfront.aws.k8s.io/enabled={annotations.get('cloudfront.aws.k8s.io/enabled', 'not set')}, "
+                f"external-dns.alpha.kubernetes.io/target={annotations.get('external-dns.alpha.kubernetes.io/target', 'not set')}")
+
     cf_enabled = annotations.get("cloudfront.aws.k8s.io/enabled", "false").lower() == "true"
 
     if cf_enabled:
-        alb_dns = create_alb(namespace, name, logger)
-        docs = load_and_patch_template(namespace, name, alb_dns)
-        for doc in docs:
-            create_or_update_crd(doc, logger)
-        patch_ingress(namespace, name, alb_dns, logger)
+        try:
+            # Récupérer l'Ingress pour obtenir le LoadBalancer
+            ingress = networking_api.read_namespaced_ingress(name, namespace)
+            alb_dns = ingress.status.load_balancer.ingress[0].hostname  # Récupérer le DNS du LoadBalancer
+            logger.info(f"Retrieved LoadBalancer hostname: {alb_dns}")
+
+            # Charger et patcher le template CloudFront
+            docs = load_and_patch_template(namespace, name, alb_dns)
+            for doc in docs:
+                create_or_update_crd(doc, logger)
+            
+            # Patcher l'Ingress avec le domaine CloudFront
+            patch_ingress(namespace, name, alb_dns, logger)
+        except Exception as e:
+            logger.error(f"Failed to retrieve LoadBalancer hostname for Ingress {name}: {e}")
     else:
         remove_crds_and_patch(namespace, name, logger)
