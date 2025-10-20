@@ -83,6 +83,29 @@ def create_or_update_crd(doc, logger):
             logger.info(f"Created {kind} {name}")
         except kubernetes.client.exceptions.ApiException as e2:
             logger.error(f"Failed to create {kind} {name}: {e2}")
+            return
+
+    # Wait for the CloudFront distribution to be ready and get its hostname
+    if kind == "Distribution":
+        try:
+            for _ in range(30):  # Retry for up to 30 seconds
+                distribution = api.get_namespaced_custom_object(
+                    group=CLOUD_FRONT_CRD_GROUP,
+                    version=CLOUD_FRONT_CRD_VERSION,
+                    namespace=namespace,
+                    plural=plural,
+                    name=name
+                )
+                status = distribution.get("status", {})
+                cf_hostname = status.get("domainName")
+                if cf_hostname:
+                    logger.info(f"CloudFront distribution {name} is ready with hostname: {cf_hostname}")
+                    return cf_hostname
+                time.sleep(1)
+            logger.error(f"Timed out waiting for CloudFront distribution {name} to be ready")
+        except Exception as e:
+            logger.error(f"Error retrieving CloudFront distribution {name}: {e}")
+    return None
 
 def patch_ingress(namespace, ingress_name, cf_domain, logger):
     try:
@@ -147,11 +170,15 @@ def reconcile_ingress(spec, status, meta, namespace, name, logger, **kwargs):
 
             # Charger et patcher le template CloudFront
             docs = load_and_patch_template(namespace, name, alb_dns)
-            #for doc in docs:
-            #    create_or_update_crd(doc, logger)
+            cf_hostname = None
+            for doc in docs:
+                cf_hostname = create_or_update_crd(doc, logger) or cf_hostname
             
-            # Patcher l'Ingress avec le domaine CloudFront
-            #patch_ingress(namespace, name, alb_dns, logger)
+            if cf_hostname:
+                # Patcher l'Ingress avec le domaine CloudFront
+                patch_ingress(namespace, name, cf_hostname, logger)
+            else:
+                logger.error(f"Failed to retrieve CloudFront hostname for Ingress {name}")
         except Exception as e:
-            logger.error(f"Failed to retrieve LoadBalancer hostname for Ingress {name}: {e}")
+            logger.error(f"Failed to process Ingress {name}: {e}")
 
